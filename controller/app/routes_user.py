@@ -1,5 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, request, current_app
 from auth import require_api_key
+from databaseOpers import DatabaseOperations
+
+database = DatabaseOperations()
 
 bp_user = Blueprint("user", __name__)
 
@@ -8,20 +11,40 @@ bp_user = Blueprint("user", __name__)
 def health():
     return {"status": "ok"}
 
-@bp_user.route("/connect", methods=["POST"])
+@bp_user.route("/register", methods=["POST"])
 @require_api_key
-def connect():
-    return {"status": "not implemented"}, 501
+def registerClient():
+    data = request.get_json()
+    clientPublicKey = data['publicKey']
+    clientName = data['name']
+    
+    if database.clientExists(clientPublicKey):
+        return {"error": "client already registered"}, 409
 
-@bp_user.route("/disconnect", methods=["POST"])
-@require_api_key
-def disconnect():
-    return {"status": "not implemented"}, 501
+    allocatedIP = database.fetchUnassignedIP()
+    database.addNewClient(clientName, clientPublicKey, allocatedIP)
+
+    return {
+        "controllerPublicKey": fetchControllerPublicKey(),
+        "allocatedIP": allocatedIP
+    }
+
+
+
 
 @bp_user.route("/peers")
 @require_api_key
 def peers():
     return {"status": "not implemented"}, 501
+
+
+
+
+def fetchControllerPublicKey():
+    publicKey = "invalid"
+    with open('publickey', 'r') as f:
+        publicKey = f.readline().rstrip('\n')
+    return publicKey 
 
 
 '''

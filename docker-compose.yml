@@ -2,8 +2,12 @@ services:
   controller:
     build: ./controller
     container_name: weaver-controller
+    depends_on:
+      - mongodb
     env_file:
       - .env
+    environment:
+      - PYTHONUNBUFFERED=1
     volumes:
       - ./controller/app:/app
     ports:
@@ -16,6 +20,15 @@ services:
     networks:
       weaver-net:
         ipv4_address: 192.168.1.1
+
+  mongodb:
+    image: mongo:7
+    container_name: weaver-mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      weaver-net:
+        ipv4_address: 192.168.1.10
 
   client1:
     build: ./client
