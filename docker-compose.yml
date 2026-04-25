@@ -4,6 +4,10 @@ services:
     container_name: weaver-controller
     env_file:
       - .env
+    volumes:
+      - ./controller/app:/app
+    ports:
+      - "5000:5000"
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
