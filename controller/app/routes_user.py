@@ -1,8 +1,10 @@
 from flask import Blueprint, request, current_app
 from auth import require_api_key
 from databaseOpers import DatabaseOperations
+from networkOpers import NetworkOperations
 
 database = DatabaseOperations()
+network = NetworkOperations()
 
 bp_user = Blueprint("user", __name__)
 
@@ -20,10 +22,14 @@ def registerClient():
     
     if database.clientExists(clientPublicKey):
         return {"error": "client already registered"}, 409
-
+ 
     allocatedIP = database.fetchUnassignedIP()
-    database.addNewClient(clientName, clientPublicKey, allocatedIP)
+    result = network.addClient(clientPublicKey, allocatedIP)
+    if "Error" in result:
+        return {"error": result}, 400
 
+    database.addNewClient(clientName, clientPublicKey, allocatedIP)
+        
     return {
         "controllerPublicKey": fetchControllerPublicKey(),
         "allocatedIP": allocatedIP
@@ -45,7 +51,6 @@ def fetchControllerPublicKey():
     with open('publickey', 'r') as f:
         publicKey = f.readline().rstrip('\n')
     return publicKey 
-
 
 '''
 3. Controller config

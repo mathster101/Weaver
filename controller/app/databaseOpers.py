@@ -2,10 +2,15 @@ import os
 import pymongo
 
 class DatabaseOperations:
-    def __init__(self):
-        self.mongoClient = pymongo.MongoClient(os.environ.get("MONGO_URI"))
-        self.mydb = self.mongoClient["WeaverDB"]
-        self.clients = self.mydb["clients"]
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.mongoClient = pymongo.MongoClient(os.environ.get("MONGO_URI"))
+            cls._instance.mydb = cls._instance.mongoClient["WeaverDB"]
+            cls._instance.clients = cls._instance.mydb["clients"]
+        return cls._instance
     
     def clientExists(self, clientPublicKey):
         return self.clients.count_documents({"clientPublicKey": clientPublicKey}) > 0
