@@ -33,6 +33,8 @@ services:
   client1:
     build: ./client
     container_name: weaver-client1
+    volumes:
+      - ./client/app:/app
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -43,6 +45,8 @@ services:
   client2:
     build: ./client
     container_name: weaver-client2
+    volumes:
+      - ./client/app:/app
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

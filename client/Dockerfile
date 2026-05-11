@@ -4,7 +4,7 @@ RUN apk add --no-cache python3 py3-pip wireguard-tools iperf3 vim neofetch trace
 
 WORKDIR /app
 COPY app/ .
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
