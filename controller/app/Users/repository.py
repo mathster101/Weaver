@@ -1,7 +1,8 @@
 import os
 import pymongo
+from datetime import datetime, UTC
 
-class DatabaseOperations:
+class ClientRepository:
     _instance = None
 
     def __new__(cls):
@@ -10,18 +11,23 @@ class DatabaseOperations:
             cls._instance.mongoClient = pymongo.MongoClient(os.environ.get("MONGO_URI"))
             cls._instance.mydb = cls._instance.mongoClient["WeaverDB"]
             cls._instance.clients = cls._instance.mydb["clients"]
+            cls._instance.clients.create_index("IP", unique = True)
+            cls._instance.clients.create_index("clientPublicKey", unique = True)
         return cls._instance
     
-    def clientExists(self, clientPublicKey):
-        return self.clients.count_documents({"clientPublicKey": clientPublicKey}) > 0
-
     def addNewClient(self, name, clientPublicKey, IP):
         data = {
             "name": name, 
             "clientPublicKey" : clientPublicKey,
-            "IP" : IP
+            "IP" : IP,
+            "connectedAt": datetime.now(UTC)
         }
-        self.clients.insert_one(data)
+        try:
+            self.clients.insert_one(data)
+        except pymongo.errors.DuplicateKeyError as e:
+            if "IP" in str(e):
+                raise ValueError("IP already allocated")
+            raise ValueError("client already registered")
 
     def fetchUnassignedIP(self):
         import ipaddress

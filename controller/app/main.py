@@ -1,6 +1,6 @@
 import os
 from flask import Flask
-from routes_user import bp_user
+from Users.routes import bp_user
 from routes_admin import bp_admin
 from networkOpers import NetworkOperations
 
