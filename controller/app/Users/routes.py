@@ -30,6 +30,7 @@ def registerClient():
         return {"error": str(e)}, 409
     result = network.addClient(clientPublicKey, allocatedIP)
     if "Error" in result:
+        database.removeClient(clientPublicKey)
         return {"error": result}, 400
     return {
         "controllerPublicKey": fetchControllerPublicKey(),

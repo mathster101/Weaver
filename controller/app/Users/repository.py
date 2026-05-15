@@ -29,6 +29,11 @@ class ClientRepository:
                 raise ValueError("IP already allocated")
             raise ValueError("client already registered")
 
+    def removeClient(self, clientPublicKey):
+        query = {"clientPublicKey" : f"{clientPublicKey}"}
+        self.clients.delete_one(query)
+
+
     def fetchUnassignedIP(self):
         import ipaddress
         subnet = ipaddress.ip_network("10.0.0.0/24")
