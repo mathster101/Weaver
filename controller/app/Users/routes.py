@@ -37,6 +37,17 @@ def registerClient():
         "allocatedIP": allocatedIP
     }
 
+
+@bp_user.route('/disconnect', methods=["POST"])
+@require_api_key
+def disconnectClient():
+    data = request.get_json()
+    if not data or 'clientPublicKey' not in data:
+        return {"error": "missing clientPublicKey"}, 400
+    database.removeClient(data['clientPublicKey'])
+    return {"status": "ok"}, 200
+
+
 @bp_user.route("/heartbeat", methods=["POST"])
 @require_api_key
 def updateHeartbeat():
@@ -45,10 +56,14 @@ def updateHeartbeat():
     database.updateHeartbeat(clientPublicKey)
     return {"status": "ok"}, 200
 
-@bp_user.route("/peers")
+@bp_user.route("/peers", methods=["GET"])
 @require_api_key
 def peers():
-    return {"status": "not implemented"}, 501
+    clientPublicKey = request.args.get('clientPublicKey')
+    if not clientPublicKey:
+        return {"error": "missing clientPublicKey"}, 400
+    peers = database.fetchPeers(clientPublicKey)
+    return {"peers": [{"name": name, "ip": ip} for name, ip in peers]}, 200
 
 
 def fetchControllerPublicKey():

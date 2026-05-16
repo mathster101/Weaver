@@ -32,10 +32,12 @@ class ClientRepository:
             if "IP" in str(e):
                 raise ValueError("IP already allocated")
             raise ValueError("client already registered")
+        self.updateHeartbeat(clientPublicKey)
 
     def removeClient(self, clientPublicKey):
         query = {"clientPublicKey" : f"{clientPublicKey}"}
         self.clientCollection.delete_one(query)
+        self.heartbeatCollection.delete_one(query)
 
 
     def fetchUnassignedIP(self):
@@ -50,6 +52,15 @@ class ClientRepository:
                 return ip
         return None
     
+    def fetchPeers(self, clientPublicKey):
+        allClients = self.clientCollection.find()
+        peers = set()
+        for client in allClients:
+            if client['clientPublicKey'] != clientPublicKey:
+                peers.add((client['name'], client["IP"]))
+        return peers
+
+
     def updateHeartbeat(self, clientPublicKey):
         self.heartbeatCollection.update_one(
             {"clientPublicKey": clientPublicKey},

@@ -4,6 +4,7 @@ from Users.routes import bp_user
 from routes_admin import bp_admin
 from Users.networkOpers import NetworkOperations
 from multiprocessing import Process
+from workers.monitor import HeartbeatMonitor
 
 def setup():
     NetworkOperations()
@@ -13,5 +14,10 @@ def setup():
     return app
 
 if __name__ == "__main__":
+    # Start monitor process
+    monitor_process = Process(target=HeartbeatMonitor().run)
+    monitor_process.daemon = True
+    monitor_process.start()
+    
     app = setup()
     app.run(host="0.0.0.0", port=5000, debug=True)
