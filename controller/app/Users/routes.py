@@ -1,7 +1,7 @@
 from flask import Blueprint, request, current_app
 from auth import require_api_key
 from Users.repository import ClientRepository
-from networkOpers import NetworkOperations
+from .networkOpers import NetworkOperations
 
 database = ClientRepository()
 network = NetworkOperations()
@@ -37,6 +37,13 @@ def registerClient():
         "allocatedIP": allocatedIP
     }
 
+@bp_user.route("/heartbeat", methods=["POST"])
+@require_api_key
+def updateHeartbeat():
+    data = request.get_json()
+    clientPublicKey = data['publicKey']
+    database.updateHeartbeat(clientPublicKey)
+    return {"status": "ok"}, 200
 
 @bp_user.route("/peers")
 @require_api_key
@@ -49,3 +56,6 @@ def fetchControllerPublicKey():
     with open('publickey', 'r') as f:
         publicKey = f.readline().rstrip('\n')
     return publicKey
+
+
+#wg show weaver0 dump | awk 'NR>1 {print substr($1,1,16), "RX:", $6, "TX:", $7}'

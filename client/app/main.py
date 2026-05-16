@@ -3,10 +3,20 @@ from enum import Enum
 import subprocess
 import argparse
 import shlex
+import readline
+from random import randint
+import threading
+import time
+
 
 CONTROLLER_IP = "192.168.1.1"
-NAME = "MATHEWCLIENT1"
 
+# Global connection state
+api_key = None
+controllerIP = None
+client_name = None
+heartbeat_thread = None
+heartbeat_running = False
 
 class ClientState(Enum):
     DISCONNECTED = 0
@@ -22,12 +32,12 @@ def fetchClientPublicKey():
 
 
 
-def connectToController(api_key, controller_ip):
-    url = f"http://{controller_ip}:5000/register"
+def connectToController(api_key, controllerIP, client_name):
+    url = f"http://{controllerIP}:5000/register"
     headers = {"weaver-auth": api_key}
     payload = {
         "publicKey": fetchClientPublicKey(),
-        "name": NAME
+        "name": client_name
     }
     
     response = requests.post(url, json=payload, headers=headers)
@@ -42,21 +52,43 @@ def connectToController(api_key, controller_ip):
     subprocess.run(["ip", "link", "add", "wg0", "type", "wireguard"])
     subprocess.run(["ip", "addr", "add", f"{allocatedIP}/24", "dev", "wg0"])
     subprocess.run(["wg", "set", "wg0", "listen-port", "51820", "private-key", "./privatekey"])
-    subprocess.run(["wg", "set", "wg0", "peer", controllerPublicKey, "allowed-ips", "10.0.0.0/24", "endpoint", f"{controller_ip}:51820", "persistent-keepalive", "25"])
+    subprocess.run(["wg", "set", "wg0", "peer", controllerPublicKey, "allowed-ips", "10.0.0.0/24", "endpoint", f"{controllerIP}:51820", "persistent-keepalive", "15"])
     subprocess.run(["ip", "link", "set", "wg0", "up"])
     
     return 0
+
+def sendHeartbeat():
+    global api_key, controllerIP, client_name, heartbeat_running
+    url = f"http://{controllerIP}:5000/heartbeat"
+    headers = {"weaver-auth": api_key}
+    payload = {
+        "publicKey": fetchClientPublicKey()
+    }
     
+    while heartbeat_running:
+        try: 
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code == 200:
+                pass
+        except Exception as e:
+            print(f"Heartbeat failed: {e}")
+        time.sleep(2)
     
 
 def main():
+    for i in range(randint(1, 100)):
+        generateKeys()
+    print("keys shuffled!")
     parser = argparse.ArgumentParser(prog='', add_help=False)
     subparsers = parser.add_subparsers(dest='command')
 
     connect_parser = subparsers.add_parser('connect')
     connect_parser.add_argument('--api_key', required=True)
     connect_parser.add_argument('--controller_ip', default=CONTROLLER_IP)
-    
+    connect_parser.add_argument('--client_name', required=True)
+
+    subparsers.add_parser('show_pub_key')
+
     subparsers.add_parser('regen_keys')
 
     subparsers.add_parser('disconnect')
@@ -73,7 +105,7 @@ def main():
 
         # Validate command for current state before argparse
         if state == ClientState.DISCONNECTED:
-            valid_commands = ['connect', 'regen_keys']
+            valid_commands = ['connect', 'regen_keys', 'show_pub_key']
         elif state == ClientState.CONNECTED:
             valid_commands = ['disconnect', 'list_peers']
         else:
@@ -90,16 +122,27 @@ def main():
 
         if state == ClientState.DISCONNECTED:
             if args.command == 'connect':
-                result = connectToController(args.api_key, args.controller_ip)
+                global api_key, controllerIP, client_name, heartbeat_thread, heartbeat_running
+                api_key = args.api_key
+                controllerIP = args.controller_ip
+                client_name = args.client_name
+                result = connectToController(api_key, controllerIP, client_name)
                 if result == 0:
                     state = ClientState.CONNECTED
                     print("Connected successfully")
+                    # Start heartbeat thread
+                    heartbeat_running = True
+                    heartbeat_thread = threading.Thread(target=sendHeartbeat, daemon=True)
+                    heartbeat_thread.start()
             elif args.command == 'regen_keys':
                 generateKeys()
                 print("Keys regenerated")
+            elif args.command == 'show_pub_key':
+                print(fetchClientPublicKey())
 
         elif state == ClientState.CONNECTED:
             if args.command == 'disconnect':
+                heartbeat_running = False
                 state = ClientState.DISCONNECTED
                 print("Disconnected")
             elif args.command == 'list_peers':

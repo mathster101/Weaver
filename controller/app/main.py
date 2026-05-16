@@ -2,7 +2,8 @@ import os
 from flask import Flask
 from Users.routes import bp_user
 from routes_admin import bp_admin
-from networkOpers import NetworkOperations
+from Users.networkOpers import NetworkOperations
+from multiprocessing import Process
 
 def setup():
     NetworkOperations()
