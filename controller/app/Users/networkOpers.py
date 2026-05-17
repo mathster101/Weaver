@@ -18,7 +18,7 @@ class NetworkOperations:
             subprocess.run(["wg", "set", "weaver0", "listen-port", "51820", "private-key", "./privatekey"])
         return cls._instance
 
-    def addClient(self, clientPublicKey, clientIP):
+    def add_client(self, clientPublicKey, clientIP):
         checkExistingResult = subprocess.run(["wg", "show", "weaver0", "dump"], capture_output=True, text=True)
         if clientPublicKey in checkExistingResult.stdout:
             return "Client already connected"

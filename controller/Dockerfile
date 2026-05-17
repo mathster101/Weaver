@@ -1,6 +1,6 @@
 FROM alpine:3.19
 
-RUN apk add --no-cache python3 py3-pip wireguard-tools iperf3 vim neofetch traceroute
+RUN apk add --no-cache python3 py3-pip wireguard-tools iperf3 vim neofetch traceroute btop
 
 WORKDIR /app
 COPY requirements.txt .

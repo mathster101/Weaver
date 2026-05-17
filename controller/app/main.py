@@ -1,7 +1,6 @@
 import os
 from flask import Flask
 from Users.routes import bp_user
-from routes_admin import bp_admin
 from Users.networkOpers import NetworkOperations
 from multiprocessing import Process
 from workers.monitor import HeartbeatMonitor
@@ -10,7 +9,6 @@ def setup():
     NetworkOperations()
     app = Flask(__name__)
     app.register_blueprint(bp_user)
-    app.register_blueprint(bp_admin)
     return app
 
 if __name__ == "__main__":

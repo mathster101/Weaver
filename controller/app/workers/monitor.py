@@ -17,7 +17,7 @@ class HeartbeatMonitor:
             self.heartbeatCollection = mydb["heartbeats"]
             self.clientCollection = mydb["clients"]
     
-    def run(self, interval=1):
+    def run(self, interval=10):
         """Run the monitor loop with specified interval in seconds."""
         self._init_db()
         print(f"Starting heartbeat monitor with {interval}s interval...")
@@ -29,9 +29,9 @@ class HeartbeatMonitor:
         now = time.time()
         allHeartbeats = self.heartbeatCollection.find()
         for clientHeartbeat in allHeartbeats:
-            last_heartbeat = clientHeartbeat['lastHeartbeat'].timestamp()
-            if now - last_heartbeat > 10:
-                query = {"clientPublicKey" : clientHeartbeat["clientPublicKey"]}
+            last_heartbeat = clientHeartbeat["lastHeartbeat"].timestamp()
+            if now - last_heartbeat > 20:
+                query = {"clientPublicKey": clientHeartbeat["clientPublicKey"]}
                 self.heartbeatCollection.delete_one(query)
                 self.clientCollection.delete_one(query)
                 try:
