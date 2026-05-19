@@ -13,7 +13,7 @@ class NetworkOperations:
                 cls._instance.iproute.link("del", index=existing[0])
             cls._instance.iproute.link("add", ifname="weaver0", kind="wireguard")
             index = cls._instance.iproute.link_lookup(ifname="weaver0")[0]
-            cls._instance.iproute.addr("add", index=index, address="10.0.0.1", prefixlen=24)
+            cls._instance.iproute.addr("add", index=index, address="10.0.1.1", prefixlen=24)
             cls._instance.iproute.link("set", index=index, state="up")
             subprocess.run(["wg", "set", "weaver0", "listen-port", "51820", "private-key", "./privatekey"])
         return cls._instance

@@ -42,11 +42,11 @@ class ClientRepository:
 
     def fetch_unassigned_ip(self):
         import ipaddress
-        subnet = ipaddress.ip_network("10.0.0.0/24")
+        subnet = ipaddress.ip_network("10.0.1.0/24")
         allocatedIPs = {doc["IP"] for doc in self.clientCollection.find({}, {"_id": 0, "IP": 1})}
         for host in subnet.hosts():
             ip = str(host)
-            if ip == "10.0.0.1":
+            if ip == "10.0.1.1":
                 continue
             if ip not in allocatedIPs:
                 return ip
@@ -61,8 +61,11 @@ class ClientRepository:
         allClients = self.clientCollection.find()
         peers = set()
         for client in allClients:
-            if client["clientPublicKey"] != clientPublicKey:
-                peers.add((client["name"], client["IP"]))
+            name = client["name"]
+            ip = client["IP"]
+            if client["clientPublicKey"] == clientPublicKey:
+                name += " (this is you!)"
+            peers.add((name, ip))
         return peers
 
 

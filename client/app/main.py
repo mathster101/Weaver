@@ -13,7 +13,6 @@ import sys
 
 CONTROLLER_IP = "192.168.1.1"
 
-# Global connection state
 api_key = None
 controller_ip = None
 client_name = None
@@ -52,40 +51,25 @@ def connect_to_controller(api_key, controller_ip, client_name):
     controllerPublicKey = response.json()['controllerPublicKey']
     allocatedIP = response.json()['allocatedIP']
 
-    # Configure WireGuard interface
     subprocess.run(["ip", "link", "delete", "weaverClient0"], capture_output=True)
     subprocess.run(["ip", "link", "add", "weaverClient0", "type", "wireguard"])
     subprocess.run(["ip", "addr", "add", f"{allocatedIP}/24", "dev", "weaverClient0"])
     subprocess.run(["wg", "set", "weaverClient0", "listen-port", "51820", "private-key", "/dev/stdin"], input=private_key, text=True)
-    subprocess.run(["wg", "set", "weaverClient0", "peer", controllerPublicKey, "allowed-ips", "10.0.0.0/24", "endpoint", f"{controller_ip}:51820", "persistent-keepalive", "15"])
+    subprocess.run(["wg", "set", "weaverClient0", "peer", controllerPublicKey, "allowed-ips", "10.0.1.0/24", "endpoint", f"{controller_ip}:51820", "persistent-keepalive", "15"])
     subprocess.run(["ip", "link", "set", "weaverClient0", "up"])
 
     return 0
 
-def send_heartbeat():
-    global api_key, controller_ip, client_name, heartbeat_running
-    url = f"http://{controller_ip}:5000/heartbeat"
-    headers = {"weaver-auth": api_key}
-    payload = {
-        "publicKey": fetch_client_public_key()
-    }
-
-    while heartbeat_running:
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            if response.status_code == 200:
-                pass
-        except Exception as e:
-            print(f"Heartbeat failed: {e}")
-        time.sleep(2)
-
 def list_peers():
     global api_key, controller_ip
-    url = f"http://{controller_ip}:5000/peers?clientPublicKey={fetch_client_public_key()}"
+    url = f"http://{controller_ip}:5000/peers"
     headers = {"weaver-auth": api_key}
+    params = {
+        "clientPublicKey": fetch_client_public_key()
+    }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, params=params, headers=headers)
         if response.status_code == 200:
             peers = response.json()['peers']
             if not peers:
@@ -116,6 +100,23 @@ def disconnect_from_controller():
     except Exception as e:
         print(f"Failed to disconnect: {e} :-(")
 
+def send_heartbeat():
+    global api_key, controller_ip, client_name, heartbeat_running
+    url = f"http://{controller_ip}:5000/heartbeat"
+    headers = {"weaver-auth": api_key}
+    payload = {
+        "publicKey": fetch_client_public_key()
+    }
+
+    while heartbeat_running:
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code == 200:
+                pass
+        except Exception as e:
+            print(f"Heartbeat failed: {e}")
+        time.sleep(2)
+
 def signal_handler(sig, frame):
     global state, heartbeat_running
     if state == ClientState.CONNECTED:
@@ -126,7 +127,7 @@ def signal_handler(sig, frame):
     
 
 def main():
-    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler) 
     signal.signal(signal.SIGTERM, signal_handler)
 
     for i in range(randint(1, 1000)):
@@ -151,13 +152,12 @@ def main():
     state = ClientState.DISCONNECTED
     try:
         while True:
-            cmd_input = input(">").strip()
+            cmd_input = input("weaver>").strip()
             parts = shlex.split(cmd_input) if cmd_input else []
 
             if not parts:
                 continue
 
-            # Validate command for current state before argparse
             if state == ClientState.DISCONNECTED:
                 valid_commands = ["connect", "regen_keys", "show_pub_key"]
             elif state == ClientState.CONNECTED:
