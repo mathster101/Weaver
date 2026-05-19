@@ -3,7 +3,8 @@ services:
     build: ./controller
     container_name: weaver-controller
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -27,6 +28,11 @@ services:
     container_name: weaver-mongodb
     ports:
       - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       weaver-net:
         ipv4_address: 192.168.1.10
